@@ -11,6 +11,7 @@ export interface Event {
   title: string
   description: string | null
   url_slug: string
+  event_edit_code: string
   created_at: string
   expires_at: string
 }
@@ -101,6 +102,7 @@ export interface ParticipantCount {
 export interface CreateEventResponse {
   slug: string
   url: string
+  event_edit_code: string
 }
 
 export interface CreateResponseResponse {

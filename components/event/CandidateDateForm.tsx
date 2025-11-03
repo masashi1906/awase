@@ -21,6 +21,18 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
   const [endTime, setEndTime] = useState('18:00')
   const [error, setError] = useState('')
 
+  // 30分刻みの時間選択肢を生成（00:00 〜 23:30）
+  const generateTimeOptions = () => {
+    const options: string[] = []
+    for (let hour = 0; hour < 24; hour++) {
+      options.push(`${String(hour).padStart(2, '0')}:00`)
+      options.push(`${String(hour).padStart(2, '0')}:30`)
+    }
+    return options
+  }
+
+  const timeOptions = generateTimeOptions()
+
   const handleAdd = () => {
     setError('')
 
@@ -69,24 +81,36 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
               <label htmlFor="startTime" className="text-sm font-medium">
                 開始時刻
               </label>
-              <Input
+              <select
                 id="startTime"
-                type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-              />
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="endTime" className="text-sm font-medium">
                 終了時刻
               </label>
-              <Input
+              <select
                 id="endTime"
-                type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-              />
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

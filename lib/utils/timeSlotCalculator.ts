@@ -15,13 +15,26 @@ export interface AvailabilityBlock {
 }
 
 /**
+ * 時刻を "HH:mm" 形式に正規化
+ * @param time - "HH:mm" または "HH:mm:ss" 形式の時刻
+ * @returns "HH:mm" 形式の時刻
+ */
+export function normalizeTime(time: string): string {
+  const parts = time.split(':')
+  const hours = parts[0].padStart(2, '0')
+  const minutes = parts[1].padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+/**
  * 時刻に分を加算
- * @param time - "HH:mm" 形式の時刻
+ * @param time - "HH:mm" または "HH:mm:ss" 形式の時刻
  * @param minutes - 加算する分数
  * @returns "HH:mm" 形式の時刻
  */
 export function addMinutes(time: string, minutes: number): string {
-  const [hours, mins] = time.split(':').map(Number)
+  const normalized = normalizeTime(time)
+  const [hours, mins] = normalized.split(':').map(Number)
   const totalMinutes = hours * 60 + mins + minutes
   const newHours = Math.floor(totalMinutes / 60)
   const newMins = totalMinutes % 60
@@ -30,8 +43,8 @@ export function addMinutes(time: string, minutes: number): string {
 
 /**
  * 開始時刻と終了時刻から30分単位のスロットを生成
- * @param startTime - 開始時刻 ("09:00")
- * @param endTime - 終了時刻 ("18:00")
+ * @param startTime - 開始時刻 ("09:00" or "09:00:00")
+ * @param endTime - 終了時刻 ("18:00" or "18:00:00")
  * @returns 30分単位のスロット配列 ["09:00", "09:30", "10:00", ...]
  */
 export function generateTimeSlots(
@@ -39,9 +52,11 @@ export function generateTimeSlots(
   endTime: string
 ): string[] {
   const slots: string[] = []
-  let current = startTime
+  const normalizedStart = normalizeTime(startTime)
+  const normalizedEnd = normalizeTime(endTime)
+  let current = normalizedStart
 
-  while (current < endTime) {
+  while (current < normalizedEnd) {
     slots.push(current)
     current = addMinutes(current, 30)
   }

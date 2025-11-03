@@ -61,12 +61,16 @@ export async function POST(request: NextRequest) {
     // イベント作成
     const expiresAt = getExpiryDate() // 1ヶ月後
 
+    // イベント編集コード生成（8桁英数字）
+    const eventEditCode = generateSlug(8)
+
     const { data: event, error: eventError } = await supabase
       .from('events')
       .insert({
         title: body.title,
         description: body.description || null,
         url_slug: slug,
+        event_edit_code: eventEditCode,
         expires_at: expiresAt.toISOString(),
       })
       .select()
@@ -108,6 +112,7 @@ export async function POST(request: NextRequest) {
       {
         slug,
         url: `/event/${slug}`,
+        event_edit_code: eventEditCode,
       },
       { status: 201 }
     )

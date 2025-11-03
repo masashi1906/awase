@@ -31,17 +31,24 @@
    - 複数日の候補日設定
    - 各日の時間範囲設定（例：09:00-18:00）
    - 共有URL発行
+   - 編集用コード（8桁英数字）発行
 
-2. 回答（参加者）
+2. イベント編集（ホスト）
+   - 編集用コードで認証
+   - タイトル・説明の変更
+   - 候補日の追加・削除
+   - 候補日削除時、その日への回答は自動削除
+
+3. 回答（参加者）
    - カレンダーでドラッグして空き時間を選択
    - 名前入力
-   - 編集コード（4桁）発行
+   - 編集コード（8桁英数字）発行
    - 他の参加者の選択状況を確認
 
-3. 編集
+4. 回答編集（参加者）
    - 名前 + 編集コードで回答を編集可能
 
-4. 集計
+5. 集計
    - 30分単位で参加可能人数を表示
    - 最適な時間帯の提示
 
@@ -115,12 +122,14 @@ availability_blocks (選択時間帯)
 | title | text | NOT NULL | イベントタイトル |
 | description | text | NULLABLE | 説明 |
 | url_slug | text | UNIQUE, NOT NULL | 共有用URL（例：abc123xyz） |
+| event_edit_code | text | NOT NULL | イベント編集コード（8桁英数字） |
 | created_at | timestamptz | NOT NULL, DEFAULT now() | 作成日時 |
 | expires_at | timestamptz | NOT NULL | 有効期限（作成日 + 1ヶ月） |
 
 **インデックス:**
 ```sql
 CREATE UNIQUE INDEX idx_events_url_slug ON events(url_slug);
+CREATE INDEX idx_events_slug_code ON events(url_slug, event_edit_code);
 ```
 
 **SQL:**
@@ -130,6 +139,7 @@ CREATE TABLE events (
   title TEXT NOT NULL,
   description TEXT,
   url_slug TEXT UNIQUE NOT NULL,
+  event_edit_code TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ NOT NULL
 );
@@ -172,13 +182,15 @@ CREATE TABLE candidate_dates (
 | id | uuid | PRIMARY KEY | 回答ID |
 | event_id | uuid | FOREIGN KEY → events(id), NOT NULL | イベントID |
 | participant_name | text | NOT NULL | 参加者名 |
-| edit_code | text | NOT NULL | 編集コード（4桁） |
+| edit_code | text | NOT NULL | 編集コード（8桁英数字） |
 | created_at | timestamptz | NOT NULL, DEFAULT now() | 作成日時 |
 | updated_at | timestamptz | NOT NULL, DEFAULT now() | 更新日時 |
 
 **制約:**
 ```sql
-UNIQUE(event_id, participant_name)  -- 同一イベント内で名前重複防止
+-- 名前重複を許可（同じ名前の人が複数いる場合に対応）
+-- 編集時は response_id + participant_name + edit_code で認証するため問題なし
+-- edit_code は8文字 (a-z0-9) = 36^8 ≈ 2.8兆通りの組み合わせ
 ```
 
 **インデックス:**
@@ -243,6 +255,7 @@ CREATE TABLE events (
   title TEXT NOT NULL,
   description TEXT,
   url_slug TEXT UNIQUE NOT NULL,
+  event_edit_code TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ NOT NULL
 );
@@ -264,8 +277,8 @@ CREATE TABLE responses (
   participant_name TEXT NOT NULL,
   edit_code TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(event_id, participant_name)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  -- 名前重複を許可（UNIQUE制約なし）
 );
 
 -- availability_blocksテーブル
@@ -280,6 +293,7 @@ CREATE TABLE availability_blocks (
 
 -- インデックス
 CREATE UNIQUE INDEX idx_events_url_slug ON events(url_slug);
+CREATE INDEX idx_events_slug_code ON events(url_slug, event_edit_code);
 CREATE INDEX idx_candidate_dates_event_id ON candidate_dates(event_id);
 CREATE INDEX idx_responses_event_id ON responses(event_id);
 CREATE INDEX idx_responses_name_code ON responses(event_id, participant_name, edit_code);
@@ -298,6 +312,7 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 2. **編集方法：名前 + 編集コード**
    - `participant_name` + `edit_code` で認証
    - URLを失っても編集可能
+   - 同じ名前の参加者が複数いても、edit_codeがユニークなため識別可能
 
 3. **有効期限：1ヶ月**
    - `expires_at` で管理
@@ -319,7 +334,8 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 | `/create` | イベント作成 | タイトル、候補日設定 |
 | `/event/[slug]` | イベント詳細 | イベント情報、参加者一覧 |
 | `/event/[slug]/respond` | 回答画面 | カレンダーで時間選択 |
-| `/event/[slug]/edit` | 編集画面 | 名前+コード入力→編集 |
+| `/event/[slug]/edit` | 回答編集画面 | 名前+コード入力→回答編集 |
+| `/event/[slug]/edit-event` | イベント編集画面 | 編集コード入力→イベント編集 |
 | `/event/[slug]/result` | 集計結果 | 30分単位の集計表示 |
 
 ---
@@ -344,11 +360,22 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 完了画面（編集コード表示）
 ```
 
-#### 編集
+#### イベント編集（ホスト）
 ```
 /event/[slug] (イベント詳細)
-  ↓ 「編集する」ボタン
-/event/[slug]/edit (編集画面)
+  ↓ 「イベントを編集」ボタン
+/event/[slug]/edit-event (イベント編集認証)
+  ↓ 編集コード入力
+/event/[slug]/edit-event (イベント編集フォーム)
+  ↓ タイトル・説明・候補日を編集 → 更新
+完了画面
+```
+
+#### 回答編集（参加者）
+```
+/event/[slug] (イベント詳細)
+  ↓ 「回答を編集」ボタン
+/event/[slug]/edit (回答編集認証)
   ↓ 名前+コード入力
 /event/[slug]/respond (編集モード)
   ↓ 更新
@@ -383,7 +410,7 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 - 説明入力欄（任意）
 - 候補日追加フォーム
   - 日付選択
-  - 開始時刻・終了時刻選択
+  - 開始時刻・終了時刻選択（30分単位、selectドロップダウン）
   - 「候補日を追加」ボタン
 - 追加済み候補日リスト（削除可能）
 - 「イベントを作成」ボタン
@@ -394,7 +421,25 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 - 開始時刻 < 終了時刻
 
 **アクション:**
-- 送信 → Supabaseにデータ保存 → URL発行 → 完了画面
+- 送信 → Supabaseにデータ保存 → URL発行 → 完了ダイアログ表示
+
+**イベント作成完了ダイアログ:**
+- モーダルダイアログ形式（画面中央、背景オーバーレイ）
+- 成功アイコン（緑色チェックマーク）
+- タイトル：「イベントを作成しました」
+- イベント情報：
+  - 共有URL（大きく表示）
+  - 「URLをコピー」ボタン
+- イベント編集コードセクション：
+  - ラベル：「イベント編集コード」
+  - 編集コード：8桁英数字を表示（monospace フォント）
+  - 「コードをコピー」ボタン
+- 警告メッセージ：
+  - 「この編集コードは再表示できません」
+  - 「イベント情報を編集する際に必要です」
+  - 「スクリーンショットを保存するか、メモしてください」
+- アクション：
+  - 「イベント詳細へ」ボタン（プライマリ）
 
 ---
 
@@ -404,14 +449,16 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 - 候補日一覧
 - 参加者一覧（名前、回答日時）
 - アクションボタン
-  - 「回答する」
-  - 「編集する」
-  - 「結果を見る」
+  - 「回答する」（プライマリ、赤ボタン）
+  - 「回答を編集する」（セカンダリ）
+  - 「イベントを編集する」（セカンダリ）
+  - 「結果を見る」（セカンダリ）
 - 共有用URLのコピーボタン
 
 **アクション:**
 - 「回答する」→ `/event/[slug]/respond`
-- 「編集する」→ `/event/[slug]/edit`
+- 「回答を編集する」→ `/event/[slug]/edit`
+- 「イベントを編集する」→ `/event/[slug]/edit-event`
 - 「結果を見る」→ `/event/[slug]/result`
 
 ---
@@ -431,27 +478,163 @@ CREATE INDEX idx_availability_blocks_date ON availability_blocks(date);
 1. カレンダーでドラッグして時間選択
 2. 名前を入力
 3. 「送信する」→ 確認モーダル表示
-4. 確認 → 送信 → 編集コード表示
+4. 確認 → 送信 → 編集コード表示ダイアログ
 
 **確認モーダル:**
 - 選択した時間帯をカレンダー形式で表示
 - 「戻る」「送信する」ボタン
 
+**編集コード表示ダイアログ（Response Success）:**
+- モーダルダイアログ形式（画面中央、背景オーバーレイ）
+- 成功アイコン（緑色チェックマーク）
+- タイトル：「回答を送信しました」
+- 編集コード：8桁英数字を大きく表示
+- 警告メッセージ：
+  - 「このコードは再表示できません」
+  - 「回答を編集する際に必要です」
+  - 「スクリーンショットを保存するか、メモしてください」
+- アクション：
+  - 「コードをコピー」ボタン（プライマリ）
+  - 「イベント詳細へ戻る」ボタン（セカンダリ）
+
 ---
 
-#### 5. `/event/[slug]/edit` - 編集画面
+#### 5. `/event/[slug]/edit` - 回答編集画面
+
+**5-1. 初期状態（Edit Initial State）**
+
 **表示内容:**
-- 名前入力欄
-- 編集コード入力欄（4桁）
-- 「編集画面へ」ボタン
+- ヘッダー
+  - タイトル：「回答を編集」
+  - 説明：「名前と編集コードを入力してください」
+- イベント情報カード
+  - イベントタイトル
+  - 候補日サマリー
+- 認証フォーム
+  - お名前入力欄
+  - 編集コード入力欄（8桁、monospace フォント）
+  - 「編集画面へ」ボタン
+- デモセクション（任意）
+  - 使い方の説明
+  - 編集コードの保存方法
 
-**アクション:**
-- 認証成功 → `/event/[slug]/respond`（編集モード）
-- 認証失敗 → エラーメッセージ表示
+**5-2. 認証成功時（Edit Success Loading）**
+
+**表示内容:**
+- ヘッダー
+  - タイトル：「認証成功」（緑色）
+  - 説明：「編集画面に移動しています...」
+- 成功コンテナ
+  - 成功アニメーション（緑色チェックマーク）
+  - ローディングスピナー
+  - ユーザー情報サマリー
+    - 「ようこそ、{名前} さん」
+    - 「あなたの回答を読み込んでいます...」
+
+**動作:**
+- 認証成功後、1-2秒間この画面を表示
+- 自動的に `/event/[slug]/respond?edit=true` へリダイレクト
+- 既存の回答データを responseStore に読み込む
+
+**5-3. 認証失敗時（Edit Error State）**
+
+**表示内容:**
+- ヘッダー
+  - タイトル：「回答を編集」
+  - 説明：「認証に失敗しました」（赤色）
+- エラーアラート
+  - アイコン：警告アイコン（赤）
+  - メッセージ：「名前または編集コードが正しくありません」
+  - 詳細：「入力内容を確認して、もう一度お試しください」
+- 認証フォーム（再入力可能）
+  - お名前入力欄（入力値保持）
+  - 編集コード入力欄（クリア）
+  - 「編集画面へ」ボタン
+
+**動作:**
+- フォームはそのまま表示され、再試行可能
+- 名前は入力値を保持、編集コードはクリア
+- エラーアラートは赤枠で強調表示
 
 ---
 
-#### 6. `/event/[slug]/result` - 集計結果ページ
+#### 6. `/event/[slug]/edit-event` - イベント編集画面
+
+**6-1. 初期状態（認証フォーム）**
+
+**表示内容:**
+- ヘッダー
+  - タイトル：「イベントを編集」
+  - 説明：「編集コードを入力してください」
+- イベント情報カード
+  - イベントタイトル
+  - 候補日サマリー
+- 認証フォーム
+  - 編集コード入力欄（8桁、monospace フォント）
+  - 「編集画面へ」ボタン
+- 注意事項セクション
+  - 「編集コードはイベント作成時に発行されたものです」
+  - 「候補日を削除すると、その日への参加者の回答も削除されます」
+
+**6-2. 認証成功時**
+
+**表示内容:**
+- ヘッダー
+  - タイトル：「認証成功」（緑色）
+  - 説明：「編集画面に移動しています...」
+- 成功アニメーション
+- ローディング状態
+
+**動作:**
+- 認証成功後、編集フォームを表示
+- イベントデータを取得して各フィールドに入力
+
+**6-3. 認証失敗時**
+
+**表示内容:**
+- ヘッダー
+  - タイトル：「イベントを編集」
+  - 説明：「認証に失敗しました」（赤色）
+- エラーアラート
+  - アイコン：警告アイコン（赤）
+  - メッセージ：「編集コードが正しくありません」
+  - 詳細：「入力内容を確認して、もう一度お試しください」
+- 認証フォーム（再入力可能）
+
+**6-4. 編集フォーム（認証後）**
+
+**表示内容:**
+- タイトル入力欄
+- 説明入力欄
+- 候補日一覧
+  - 各候補日に削除ボタン
+  - 削除時は確認ダイアログ表示
+- 候補日追加フォーム
+  - 日付選択
+  - 開始時刻・終了時刻選択（30分単位）
+  - 「候補日を追加」ボタン
+- 「更新する」ボタン
+
+**バリデーション:**
+- タイトル：必須
+- 候補日：1つ以上必須
+- 開始時刻 < 終了時刻
+
+**候補日削除の確認ダイアログ:**
+- タイトル：「候補日を削除しますか？」
+- メッセージ：「この候補日への参加者の回答も削除されます。この操作は取り消せません。」
+- 削除される候補日：「{日付} {開始時刻}-{終了時刻}」
+- アクション：
+  - 「キャンセル」ボタン
+  - 「削除する」ボタン（赤、危険操作）
+
+**更新完了時:**
+- 成功メッセージ表示
+- イベント詳細ページへリダイレクト
+
+---
+
+#### 7. `/event/[slug]/result` - 集計結果ページ
 **表示内容:**
 - イベントタイトル
 - 30分単位の集計表
@@ -1367,6 +1550,7 @@ useEffect(() => {
 |---------|---------------|------|
 | POST | `/api/events` | イベント作成 |
 | GET | `/api/events/[slug]` | イベント詳細取得 |
+| PUT | `/api/events/[slug]` | イベント更新（編集） |
 | POST | `/api/events/[slug]/responses` | 回答送信 |
 | PUT | `/api/events/[slug]/responses` | 回答更新（編集） |
 | GET | `/api/events/[slug]/summary` | 集計結果取得 |
@@ -1393,6 +1577,7 @@ useEffect(() => {
 {
   slug: string  // "abc123xyz"
   url: string   // "/event/abc123xyz"
+  event_edit_code: string  // "a3k9x2m7"
 }
 ```
 
@@ -1436,13 +1621,17 @@ export async function POST(request: NextRequest) {
   // イベント作成
   const expiresAt = new Date()
   expiresAt.setMonth(expiresAt.getMonth() + 1)  // 1ヶ月後
-  
+
+  // イベント編集コード生成（8桁英数字）
+  const eventEditCode = generateSlug(8)
+
   const { data: event, error: eventError } = await supabase
     .from('events')
     .insert({
       title: body.title,
       description: body.description || null,
       url_slug: slug,
+      event_edit_code: eventEditCode,
       expires_at: expiresAt.toISOString()
     })
     .select()
@@ -1476,7 +1665,8 @@ export async function POST(request: NextRequest) {
   
   return NextResponse.json({
     slug,
-    url: `/event/${slug}`
+    url: `/event/${slug}`,
+    event_edit_code: eventEditCode
   })
 }
 ```
@@ -1547,7 +1737,117 @@ export async function GET(
 
 ---
 
-### 3. POST `/api/events/[slug]/responses` - 回答送信
+### 3. PUT `/api/events/[slug]` - イベント更新
+
+**リクエスト:**
+```typescript
+{
+  event_edit_code: string
+  title: string
+  description?: string
+  candidateDates: {
+    date: string        // "2025-11-05"
+    start_time: string  // "09:00"
+    end_time: string    // "18:00"
+  }[]
+}
+```
+
+**レスポンス:**
+```typescript
+{
+  success: true
+}
+```
+
+**実装:**
+```typescript
+// app/api/events/[slug]/route.ts
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  const body = await request.json()
+
+  // バリデーション
+  if (!body.event_edit_code || !body.title || !body.candidateDates || body.candidateDates.length === 0) {
+    return NextResponse.json(
+      { error: '編集コード、タイトル、候補日は必須です' },
+      { status: 400 }
+    )
+  }
+
+  // イベントを取得して編集コードを検証
+  const { data: event } = await supabase
+    .from('events')
+    .select('id, event_edit_code')
+    .eq('url_slug', params.slug)
+    .single()
+
+  if (!event) {
+    return NextResponse.json(
+      { error: 'イベントが見つかりません' },
+      { status: 404 }
+    )
+  }
+
+  // 編集コード認証
+  if (event.event_edit_code !== body.event_edit_code) {
+    return NextResponse.json(
+      { error: '編集コードが正しくありません' },
+      { status: 401 }
+    )
+  }
+
+  // イベント情報を更新
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({
+      title: body.title,
+      description: body.description || null
+    })
+    .eq('id', event.id)
+
+  if (updateError) {
+    return NextResponse.json(
+      { error: updateError.message },
+      { status: 500 }
+    )
+  }
+
+  // 既存の候補日を削除（CASCADE で関連する availability_blocks も自動削除）
+  await supabase
+    .from('candidate_dates')
+    .delete()
+    .eq('event_id', event.id)
+
+  // 新しい候補日を挿入
+  const { error: datesError } = await supabase
+    .from('candidate_dates')
+    .insert(
+      body.candidateDates.map(date => ({
+        event_id: event.id,
+        date: date.date,
+        start_time: date.start_time,
+        end_time: date.end_time
+      }))
+    )
+
+  if (datesError) {
+    return NextResponse.json(
+      { error: datesError.message },
+      { status: 500 }
+    )
+  }
+
+  return NextResponse.json({ success: true })
+}
+```
+
+---
+
+### 4. POST `/api/events/[slug]/responses` - 回答送信
 
 **リクエスト:**
 ```typescript
@@ -1616,15 +1916,8 @@ export async function POST(
     .single()
   
   if (responseError) {
-    // 名前重複エラー
-    if (responseError.code === '23505') {
-      return NextResponse.json(
-        { error: 'この名前は既に使用されています' }, 
-        { status: 409 }
-      )
-    }
     return NextResponse.json(
-      { error: responseError.message }, 
+      { error: responseError.message },
       { status: 500 }
     )
   }
@@ -1659,7 +1952,7 @@ export async function POST(
 
 ---
 
-### 4. PUT `/api/events/[slug]/responses` - 回答更新
+### 5. PUT `/api/events/[slug]/responses` - 回答更新
 
 **リクエスト:**
 ```typescript
@@ -1758,7 +2051,7 @@ export async function PUT(
 
 ---
 
-### 5. GET `/api/events/[slug]/summary` - 集計結果取得
+### 6. GET `/api/events/[slug]/summary` - 集計結果取得
 
 **レスポンス:**
 ```typescript
@@ -1887,7 +2180,6 @@ function calculateSummary(candidateDates, responses) {
 | 400 | バリデーションエラー | 必須項目なし |
 | 401 | 認証エラー | 編集コード不正 |
 | 404 | 見つからない | イベント存在しない |
-| 409 | 競合 | 名前重複 |
 | 410 | 有効期限切れ | イベント期限切れ |
 | 500 | サーバーエラー | DB接続エラー |
 
@@ -2311,8 +2603,8 @@ CREATE TABLE responses (
   participant_name TEXT NOT NULL,
   edit_code TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(event_id, participant_name)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  -- 名前重複を許可（UNIQUE制約なし）
 );
 
 -- availability_blocksテーブル
@@ -2518,6 +2810,15 @@ vercel
 
 ---
 
-**バージョン:** 1.1  
-**作成日:** 2025-11-02  
-**最終更新:** 2025-11-03（Supabase Clientのみ使用に更新）
+**バージョン:** 1.4
+**作成日:** 2025-11-02
+**最終更新:** 2025-11-03
+- v1.4: UI/UX詳細仕様を追加（Figmaワイヤーフレームに基づく）
+  - 回答送信成功時の編集コード表示ダイアログ
+  - イベント作成完了時の編集コード表示ダイアログ
+  - 編集画面の認証フロー（初期状態、成功時、失敗時）
+  - イベント編集画面の認証フロー
+  - 候補日削除の確認ダイアログ
+- v1.3: イベント編集機能を追加（event_edit_code、PUT /api/events/[slug]、/event/[slug]/edit-event ページ）
+- v1.2: 名前重複を許可するように更新（UNIQUE制約削除）
+- v1.1: 初版
