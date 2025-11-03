@@ -16,7 +16,7 @@ interface PageProps {
 async function getEvent(slug: string): Promise<EventDetailResponse | null> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'http://localhost:3001' : ''}/api/events/${slug}`,
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'http://localhost:3000' : ''}/api/events/${slug}`,
       {
         cache: 'no-store', // 常に最新データを取得
       }
@@ -58,7 +58,7 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   // URLをコピーする関数（クライアントコンポーネントで実装）
-  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/event/${slug}`
+  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/event/${slug}`
 
   return (
     <div className="flex flex-col gap-6">
