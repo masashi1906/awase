@@ -9,10 +9,10 @@ import type { EventDetailResponse, ApiError } from '@/types'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     // イベントと関連データを取得
     const { data: event, error } = await supabase

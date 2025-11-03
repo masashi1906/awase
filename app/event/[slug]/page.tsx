@@ -9,7 +9,7 @@ import { formatDateWithDay } from '@/lib/utils/dateUtils'
 import type { EventDetailResponse } from '@/types'
 
 interface PageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 // イベントデータを取得
@@ -34,7 +34,8 @@ async function getEvent(slug: string): Promise<EventDetailResponse | null> {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const event = await getEvent(params.slug)
+  const { slug } = await params
+  const event = await getEvent(slug)
 
   if (!event) {
     return {
@@ -49,14 +50,15 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function EventDetailPage({ params }: PageProps) {
-  const event = await getEvent(params.slug)
+  const { slug } = await params
+  const event = await getEvent(slug)
 
   if (!event) {
     notFound()
   }
 
   // URLをコピーする関数（クライアントコンポーネントで実装）
-  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/event/${params.slug}`
+  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/event/${slug}`
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,21 +129,21 @@ export default async function EventDetailPage({ params }: PageProps) {
 
       {/* アクションボタン */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Link href={`/event/${params.slug}/respond`} className="w-full">
+        <Link href={`/event/${slug}/respond`} className="w-full">
           <Button size="lg" className="w-full">
             <Calendar className="mr-2 h-5 w-5" />
             回答する
           </Button>
         </Link>
 
-        <Link href={`/event/${params.slug}/edit`} className="w-full">
+        <Link href={`/event/${slug}/edit`} className="w-full">
           <Button size="lg" variant="outline" className="w-full">
             <Edit className="mr-2 h-5 w-5" />
             編集する
           </Button>
         </Link>
 
-        <Link href={`/event/${params.slug}/result`} className="w-full">
+        <Link href={`/event/${slug}/result`} className="w-full">
           <Button size="lg" variant="outline" className="w-full">
             <BarChart3 className="mr-2 h-5 w-5" />
             結果を見る
