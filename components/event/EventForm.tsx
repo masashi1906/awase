@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CandidateDateForm } from './CandidateDateForm'
+import { EventCreationSuccessDialog } from './EventCreationSuccessDialog'
 import { useEventStore } from '@/lib/store/eventStore'
 import { formatDateWithDay } from '@/lib/utils/dateUtils'
 import { X, Loader2 } from 'lucide-react'
-import type { CandidateDateInput } from '@/types'
+import type { CandidateDateInput, CreateEventResponse } from '@/types'
 
 /**
  * イベント作成フォーム
@@ -30,6 +31,9 @@ export function EventForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [creationResult, setCreationResult] = useState<CreateEventResponse | null>(
+    null
+  )
 
   const handleAddDate = (date: CandidateDateInput) => {
     addCandidateDate(date)
@@ -71,13 +75,13 @@ export function EventForm() {
         throw new Error(data.error || 'イベントの作成に失敗しました')
       }
 
-      const data = await response.json()
+      const data: CreateEventResponse = await response.json()
 
       // ストアをクリア
       clearForm()
 
-      // イベント詳細ページへ遷移
-      router.push(`/event/${data.slug}`)
+      // 成功ダイアログを表示
+      setCreationResult(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
     } finally {
@@ -86,7 +90,8 @@ export function EventForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* タイトル・説明 */}
       <Card>
         <CardHeader>
@@ -190,5 +195,15 @@ export function EventForm() {
         )}
       </Button>
     </form>
+
+      {/* 成功ダイアログ */}
+      {creationResult && (
+        <EventCreationSuccessDialog
+          open={!!creationResult}
+          slug={creationResult.slug}
+          eventEditCode={creationResult.event_edit_code}
+        />
+      )}
+    </>
   )
 }

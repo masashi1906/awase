@@ -128,7 +128,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       <ParticipantList participants={event.responses} />
 
       {/* アクションボタン */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href={`/event/${slug}/respond`} className="w-full">
           <Button size="lg" className="w-full">
             <Calendar className="mr-2 h-5 w-5" />
@@ -139,7 +139,14 @@ export default async function EventDetailPage({ params }: PageProps) {
         <Link href={`/event/${slug}/edit`} className="w-full">
           <Button size="lg" variant="outline" className="w-full">
             <Edit className="mr-2 h-5 w-5" />
-            編集する
+            回答を編集する
+          </Button>
+        </Link>
+
+        <Link href={`/event/${slug}/edit-event`} className="w-full">
+          <Button size="lg" variant="outline" className="w-full">
+            <Edit className="mr-2 h-5 w-5" />
+            イベントを編集する
           </Button>
         </Link>
 
