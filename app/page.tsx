@@ -1,65 +1,127 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Calendar, Users, Clock } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex flex-col gap-16 py-8">
+      {/* Hero Section */}
+      <section className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
+              スマホで簡単
+            </span>
+            <br />
+            スケジュール調整
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            ドラッグ操作で空き時間を選択。ログイン不要で、すぐに使えるスケジュール調整アプリ
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <Link href="/create">
+          <Button size="lg" className="text-lg px-8 py-6 h-auto">
+            <Calendar className="mr-2 h-5 w-5" />
+            イベントを作成
+          </Button>
+        </Link>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="flex flex-col gap-8">
+        <h2 className="text-2xl font-bold text-center">使い方</h2>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card>
+            <CardContent className="pt-6 flex flex-col items-center gap-4 text-center">
+              <div className="rounded-full bg-primary-100 p-3">
+                <Calendar className="h-8 w-8 text-primary-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-2">1. イベント作成</h3>
+                <p className="text-sm text-muted-foreground">
+                  候補日と時間範囲を設定して共有URLを発行
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 flex flex-col items-center gap-4 text-center">
+              <div className="rounded-full bg-secondary-100 p-3">
+                <Clock className="h-8 w-8 text-secondary-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-2">2. 空き時間を選択</h3>
+                <p className="text-sm text-muted-foreground">
+                  カレンダーをドラッグして参加可能な時間を選択
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 flex flex-col items-center gap-4 text-center">
+              <div className="rounded-full bg-primary-100 p-3">
+                <Users className="h-8 w-8 text-primary-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-2">3. 結果を確認</h3>
+                <p className="text-sm text-muted-foreground">
+                  参加可能人数を集計して最適な時間帯を提示
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </main>
+      </section>
+
+      {/* Features Section */}
+      <section className="flex flex-col gap-6 bg-muted rounded-lg p-8">
+        <h2 className="text-2xl font-bold text-center">主な特徴</h2>
+
+        <ul className="grid gap-4 md:grid-cols-2 max-w-3xl mx-auto">
+          <li className="flex items-center gap-3">
+            <div className="h-6 w-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm">✓</span>
+            </div>
+            <span>ログイン不要で即利用可能</span>
+          </li>
+          <li className="flex items-center gap-3">
+            <div className="h-6 w-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm">✓</span>
+            </div>
+            <span>スマホ最適化のドラッグUI</span>
+          </li>
+          <li className="flex items-center gap-3">
+            <div className="h-6 w-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm">✓</span>
+            </div>
+            <span>30分単位の細かい時間調整</span>
+          </li>
+          <li className="flex items-center gap-3">
+            <div className="h-6 w-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm">✓</span>
+            </div>
+            <span>編集コードで後から変更可能</span>
+          </li>
+        </ul>
+      </section>
+
+      {/* Final CTA */}
+      <section className="flex flex-col items-center gap-6 text-center">
+        <h2 className="text-2xl font-bold">今すぐ始める</h2>
+        <p className="text-muted-foreground">
+          アカウント登録不要。すぐにスケジュール調整を開始できます
+        </p>
+        <Link href="/create">
+          <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto">
+            イベントを作成する
+          </Button>
+        </Link>
+      </section>
     </div>
-  );
+  )
 }
