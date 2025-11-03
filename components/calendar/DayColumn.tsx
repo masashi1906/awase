@@ -11,10 +11,9 @@ export interface DayColumnProps {
   selectedSlots: Set<string> // Set of selected time strings like "09:00", "09:30"
   participantCounts?: Map<string, number> // Map of time -> participant count
   onSlotToggle: (time: string) => void
-  onDragStart: (time: string, clientX?: number, clientY?: number) => void
+  onDragStart: (time: string) => void
   onDragMove: (time: string) => void
   onDragEnd: () => void
-  onDragCancel: () => void
 }
 
 /**
@@ -31,7 +30,6 @@ export function DayColumn({
   onDragStart,
   onDragMove,
   onDragEnd,
-  onDragCancel,
 }: DayColumnProps) {
   const timeSlots = generateTimeSlots(startTime, endTime)
 
@@ -54,13 +52,12 @@ export function DayColumn({
               time={time}
               isSelected={selectedSlots.has(time)}
               participantCount={participantCounts?.get(time) || 0}
-              onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => {
+              onPointerDown={() => {
                 onSlotToggle(time)
-                onDragStart(time, e.clientX, e.clientY)
+                onDragStart(time)
               }}
               onPointerEnter={() => onDragMove(time)}
               onPointerUp={onDragEnd}
-              onPointerCancel={onDragCancel}
             />
           )
         })}

@@ -6,10 +6,9 @@ export interface TimeSlotProps {
   time: string // "09:00", "09:30", etc.
   isSelected: boolean
   participantCount?: number
-  onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void
+  onPointerDown?: () => void
   onPointerEnter?: () => void
   onPointerUp?: () => void
-  onPointerCancel?: () => void
   className?: string
 }
 
@@ -24,7 +23,6 @@ export function TimeSlot({
   onPointerDown,
   onPointerEnter,
   onPointerUp,
-  onPointerCancel,
   className,
 }: TimeSlotProps) {
   return (
@@ -38,7 +36,8 @@ export function TimeSlot({
       onPointerDown={onPointerDown}
       onPointerEnter={onPointerEnter}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
+      // タッチデバイスでのデフォルト動作を防ぐ
+      onTouchStart={(e) => e.preventDefault()}
     >
       {/* 参加可能人数バッジ */}
       {participantCount > 0 && (
