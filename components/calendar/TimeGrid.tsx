@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { DayColumn } from './DayColumn'
 import { generateTimeSlots } from '@/lib/utils/timeSlotCalculator'
+import { ChevronsLeftRight, ChevronsUpDown } from 'lucide-react'
 import type { CandidateDate } from '@/types'
 
 export interface TimeGridProps {
@@ -96,19 +97,25 @@ export function TimeGrid({
       {/* 時刻ラベル + グリッド */}
       <div className="flex overflow-x-auto">
         {/* 時刻ラベル列 */}
-        <div className="flex flex-col sticky left-0 z-20 bg-white border-r-2 border-gray-300">
-          {/* ヘッダー空白 */}
-          <div className="h-[52px] border-b-2 border-gray-300" />
+        <div className="flex flex-col sticky left-0 z-20 bg-blue-50/50 border-r-2 border-gray-300">
+          {/* ヘッダー空白（横スクロールヒント） */}
+          <div className="h-[52px] border-b-2 border-gray-300 flex items-center justify-center relative bg-gradient-to-br from-blue-50 to-indigo-50">
+            <ChevronsLeftRight className="w-4 h-4 text-blue-600/60 absolute" />
+          </div>
 
           {/* 時刻ラベル */}
           {timeSlots.map((time, index) => (
             <div
               key={time}
-              className="h-12 border-b border-gray-200 flex items-center justify-end pr-2 min-w-[60px]"
+              className="h-12 border-b border-gray-200 flex items-center justify-end pr-2 min-w-[60px] relative"
             >
               <span className="text-xs text-gray-600">
                 {index % 2 === 0 ? time : ''}
               </span>
+              {/* 最初と最後の時間帯に上下スクロールアイコンを表示 */}
+              {index === 0 && (
+                <ChevronsUpDown className="w-3 h-3 text-blue-600/40 absolute left-1" />
+              )}
             </div>
           ))}
         </div>

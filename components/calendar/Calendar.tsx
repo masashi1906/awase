@@ -48,6 +48,15 @@ export function Calendar({
             <li>• ドラッグで連続選択が可能</li>
             <li>• 選択済みの時間帯をもう一度タップで解除</li>
           </ul>
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <h4 className="text-sm font-medium text-blue-900 mb-1">
+              📱 スマホでのスクロール
+            </h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• <strong>横スクロール</strong>：日付の行（色付き部分）をドラッグ</li>
+              <li>• <strong>縦スクロール</strong>：時間の列（左側の色付き部分）をドラッグ</li>
+            </ul>
+          </div>
         </div>
       )}
 
