@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Calendar } from '@/components/calendar'
+import { ResponseSuccessDialog } from './ResponseSuccessDialog'
 import { useResponseStore } from '@/lib/store/responseStore'
 import type { CandidateDate, TimeSlot } from '@/types'
 
@@ -19,7 +19,6 @@ interface ResponseFormProps {
  * カレンダーで予定を選択して送信
  */
 export function ResponseForm({ eventSlug, candidateDates }: ResponseFormProps) {
-  const router = useRouter()
   const {
     participantName,
     selectedSlots,
@@ -29,6 +28,7 @@ export function ResponseForm({ eventSlug, candidateDates }: ResponseFormProps) {
   } = useResponseStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [successEditCode, setSuccessEditCode] = useState<string | null>(null)
 
   // TimeSlot[] → Map<date, Set<time>> 変換
   const selectedSlotsMap = useMemo(() => {
@@ -93,11 +93,13 @@ export function ResponseForm({ eventSlug, candidateDates }: ResponseFormProps) {
         throw new Error(data.error || '送信に失敗しました')
       }
 
+      const data = await response.json()
+
       // ストアをリセット
       reset()
 
-      // 成功したらイベント詳細ページに戻る
-      router.push(`/event/${eventSlug}?success=true`)
+      // 成功ダイアログを表示
+      setSuccessEditCode(data.edit_code)
     } catch (err) {
       setError(err instanceof Error ? err.message : '送信に失敗しました')
       setIsSubmitting(false)
@@ -108,7 +110,8 @@ export function ResponseForm({ eventSlug, candidateDates }: ResponseFormProps) {
   const totalSelectedSlots = selectedSlots.length
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* 名前入力 */}
       <Card>
         <CardContent className="pt-6">
@@ -170,5 +173,15 @@ export function ResponseForm({ eventSlug, candidateDates }: ResponseFormProps) {
         {isSubmitting ? '送信中...' : '回答を送信'}
       </Button>
     </form>
+
+      {/* 成功ダイアログ */}
+      {successEditCode && (
+        <ResponseSuccessDialog
+          open={!!successEditCode}
+          eventSlug={eventSlug}
+          editCode={successEditCode}
+        />
+      )}
+    </>
   )
 }
