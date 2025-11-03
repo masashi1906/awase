@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { DayColumn } from './DayColumn'
 import { generateTimeSlots } from '@/lib/utils/timeSlotCalculator'
 import type { CandidateDate } from '@/types'
@@ -10,6 +10,12 @@ export interface TimeGridProps {
   selectedSlots: Map<string, Set<string>> // Map of date -> Set of selected times
   onSelectionChange: (date: string, slots: Set<string>) => void
   participantCounts?: Map<string, Map<string, number>> // Map of date -> Map of time -> count
+}
+
+interface TouchStartPosition {
+  x: number
+  y: number
+  time: number
 }
 
 /**
@@ -25,9 +31,21 @@ export function TimeGrid({
   const [isDragging, setIsDragging] = useState(false)
   const [dragMode, setDragMode] = useState<'select' | 'deselect'>('select')
   const [currentDate, setCurrentDate] = useState<string | null>(null)
+  const touchStartPos = useRef<TouchStartPosition | null>(null)
+  const [isScrolling, setIsScrolling] = useState(false)
 
   const handleDragStart = useCallback(
-    (date: string, time: string) => {
+    (date: string, time: string, clientX?: number, clientY?: number) => {
+      // タッチ開始位置を記録
+      if (clientX !== undefined && clientY !== undefined) {
+        touchStartPos.current = {
+          x: clientX,
+          y: clientY,
+          time: Date.now(),
+        }
+      }
+
+      setIsScrolling(false)
       setIsDragging(true)
       setCurrentDate(date)
 
@@ -42,7 +60,7 @@ export function TimeGrid({
 
   const handleDragMove = useCallback(
     (date: string, time: string) => {
-      if (!isDragging || date !== currentDate) return
+      if (!isDragging || date !== currentDate || isScrolling) return
 
       const dateSlots = new Set(selectedSlots.get(date) || [])
 
@@ -54,12 +72,21 @@ export function TimeGrid({
 
       onSelectionChange(date, dateSlots)
     },
-    [isDragging, currentDate, dragMode, selectedSlots, onSelectionChange]
+    [isDragging, currentDate, dragMode, selectedSlots, onSelectionChange, isScrolling]
   )
 
   const handleDragEnd = useCallback(() => {
     setIsDragging(false)
     setCurrentDate(null)
+    touchStartPos.current = null
+    setIsScrolling(false)
+  }, [])
+
+  const handleDragCancel = useCallback(() => {
+    setIsDragging(false)
+    setCurrentDate(null)
+    touchStartPos.current = null
+    setIsScrolling(false)
   }, [])
 
   const handleSlotToggle = useCallback(
@@ -94,7 +121,26 @@ export function TimeGrid({
   return (
     <div className="flex flex-col">
       {/* 時刻ラベル + グリッド */}
-      <div className="flex overflow-x-auto">
+      <div
+        className="flex overflow-x-auto"
+        style={{
+          touchAction: isDragging ? 'none' : 'auto'
+        }}
+        onTouchMove={(e) => {
+          // タッチ移動時にスクロール意図を判定
+          if (!touchStartPos.current || !isDragging) return
+
+          const touch = e.touches[0]
+          const deltaX = Math.abs(touch.clientX - touchStartPos.current.x)
+          const deltaY = Math.abs(touch.clientY - touchStartPos.current.y)
+
+          // 横方向の移動が縦方向より大きい場合は横スクロールと判定
+          if (deltaX > deltaY && deltaX > 10) {
+            setIsScrolling(true)
+            handleDragCancel()
+          }
+        }}
+      >
         {/* 時刻ラベル列 */}
         <div className="flex flex-col sticky left-0 z-20 bg-white border-r-2 border-gray-300">
           {/* ヘッダー空白 */}
@@ -124,9 +170,10 @@ export function TimeGrid({
               selectedSlots={selectedSlots.get(candidateDate.date) || new Set()}
               participantCounts={participantCounts?.get(candidateDate.date)}
               onSlotToggle={(time) => handleSlotToggle(candidateDate.date, time)}
-              onDragStart={(time) => handleDragStart(candidateDate.date, time)}
+              onDragStart={(time, clientX, clientY) => handleDragStart(candidateDate.date, time, clientX, clientY)}
               onDragMove={(time) => handleDragMove(candidateDate.date, time)}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             />
           ))}
         </div>
