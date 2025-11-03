@@ -97,9 +97,9 @@ export default function EventEditPage({ params }: PageProps) {
       // 1.5秒後にフォーム画面へ
       setTimeout(() => {
         // ストアにイベント情報を読み込む
-        setTitle(eventData.title)
-        setDescription(eventData.description || '')
-        clearForm()
+        clearForm() // 先にクリア
+        setTitle(eventData.title) // その後にタイトルをセット
+        setDescription(eventData.description || '') // 説明をセット
         eventData.candidate_dates.forEach((date) => {
           addCandidateDate({
             date: date.date,
