@@ -15,8 +15,10 @@ interface PageProps {
 // イベントデータを取得
 async function getEvent(slug: string): Promise<EventDetailResponse | null> {
   try {
+    // 本番環境ではNEXT_PUBLIC_APP_URL、開発環境ではlocalhost:3000を使用
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'http://localhost:3000' : ''}/api/events/${slug}`,
+      `${baseUrl}/api/events/${slug}`,
       {
         cache: 'no-store', // 常に最新データを取得
       }
