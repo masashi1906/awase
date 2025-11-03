@@ -21,8 +21,7 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
   const [endTime, setEndTime] = useState('18:00')
   const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAdd = () => {
     setError('')
 
     // バリデーション
@@ -52,7 +51,7 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label htmlFor="date" className="text-sm font-medium">
               日付
@@ -62,7 +61,6 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              required
             />
           </div>
 
@@ -76,7 +74,6 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                required
               />
             </div>
 
@@ -89,7 +86,6 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                required
               />
             </div>
           </div>
@@ -98,11 +94,11 @@ export function CandidateDateForm({ onAdd }: CandidateDateFormProps) {
             <p className="text-sm text-destructive">{error}</p>
           )}
 
-          <Button type="submit" variant="outline" className="w-full">
+          <Button type="button" variant="outline" className="w-full" onClick={handleAdd}>
             <Plus className="mr-2 h-4 w-4" />
             候補日を追加
           </Button>
-        </form>
+        </div>
       </CardContent>
     </Card>
   )
