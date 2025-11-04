@@ -33,10 +33,11 @@ export function TimeSlot({
         isSelected && 'bg-primary/10 border-primary/30 hover:bg-primary/20',
         className
       )}
-      style={{ touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerEnter={onPointerEnter}
       onPointerUp={onPointerUp}
+      // タッチデバイスでのデフォルト動作を防ぐ
+      onTouchStart={(e) => e.preventDefault()}
     >
       {/* 参加可能人数バッジ */}
       {participantCount > 0 && (

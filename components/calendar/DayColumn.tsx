@@ -35,9 +35,9 @@ export function DayColumn({
 
   return (
     <div className="flex flex-col min-w-[100px]">
-      {/* 日付ヘッダー（横スクロール可能領域） */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-blue-50 to-indigo-50 border-b-2 border-gray-300 h-[52px] flex items-center justify-center cursor-grab active:cursor-grabbing">
-        <div className="text-sm font-medium text-center text-gray-800">
+      {/* 日付ヘッダー */}
+      <div className="sticky top-0 z-10 bg-white border-b-2 border-gray-300 h-[52px] flex items-center justify-center">
+        <div className="text-sm font-medium text-center">
           {formatDateWithDay(date)}
         </div>
       </div>
