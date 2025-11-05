@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { EventStore, CandidateDateInput } from '@/types'
+import type { EventStore } from '@/types'
 
 /**
  * イベント作成フォーム用のストア

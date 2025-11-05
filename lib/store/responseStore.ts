@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ResponseStore, TimeSlot, AvailabilityBlockInput, AvailabilityBlock } from '@/types'
+import type {
+  ResponseStore,
+  TimeSlot,
+  AvailabilityBlockInput,
+  AvailabilityBlock,
+} from '@/types'
 import { mergeConsecutiveSlots, expandBlocksToSlots } from '@/lib/utils/timeSlotCalculator'
 
 /**
@@ -15,42 +20,40 @@ export const useResponseStore = create<ResponseStore>()(
 
       setParticipantName: (name) => set({ participantName: name }),
 
-      toggleSlot: (slot) =>
+      toggleSlot: (slot: TimeSlot) =>
         set((state) => {
           const exists = state.selectedSlots.some(
             (s) => s.date === slot.date && s.time === slot.time
           )
 
           if (exists) {
-            // 選択解除
             return {
               selectedSlots: state.selectedSlots.filter(
                 (s) => !(s.date === slot.date && s.time === slot.time)
               ),
             }
-          } else {
-            // 選択
-            return {
-              selectedSlots: [...state.selectedSlots, slot],
-            }
+          }
+
+          return {
+            selectedSlots: [...state.selectedSlots, slot],
           }
         }),
 
-      addSlotRange: (slots) =>
+      addSlotRange: (slots: TimeSlot[]) =>
         set((state) => {
-          // 重複を避けて追加
           const newSlots = slots.filter(
             (slot) =>
               !state.selectedSlots.some(
                 (s) => s.date === slot.date && s.time === slot.time
               )
           )
+
           return {
             selectedSlots: [...state.selectedSlots, ...newSlots],
           }
         }),
 
-      removeSlotRange: (slots) =>
+      removeSlotRange: (slots: TimeSlot[]) =>
         set((state) => ({
           selectedSlots: state.selectedSlots.filter(
             (s) =>
@@ -62,19 +65,22 @@ export const useResponseStore = create<ResponseStore>()(
 
       clearAllSlots: () => set({ selectedSlots: [] }),
 
-      isSlotSelected: (slot) => {
+      isSlotSelected: (slot: TimeSlot) => {
         return get().selectedSlots.some(
           (s) => s.date === slot.date && s.time === slot.time
         )
       },
 
-      getAvailabilityBlocks: () => {
+      getAvailabilityBlocks: (): AvailabilityBlockInput[] => {
         const slots = get().selectedSlots
-        return mergeConsecutiveSlots(slots)
+        return mergeConsecutiveSlots(slots).map((block) => ({
+          date: block.date,
+          start_time: block.start_time,
+          end_time: block.end_time,
+        }))
       },
 
-      loadFromResponse: (blocks) => {
-        // AvailabilityBlock[] を TimeSlot[] に展開
+      loadFromResponse: (blocks: AvailabilityBlock[]) => {
         const slots = expandBlocksToSlots(blocks)
         set({ selectedSlots: slots })
       },

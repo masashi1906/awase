@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +16,6 @@ import type { CandidateDateInput, CreateEventResponse } from '@/types'
  * タイトル、説明、候補日を入力してイベントを作成する
  */
 export function EventForm() {
-  const router = useRouter()
   const {
     title,
     description,
