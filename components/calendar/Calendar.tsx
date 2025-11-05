@@ -24,32 +24,33 @@ export function Calendar({
   participantCounts,
   showInstructions = true,
 }: CalendarProps) {
-  if (candidateDates.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <p className="text-center text-muted-foreground">
-            候補日がありません
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
+  const hasCandidates = candidateDates.length > 0
 
   const unifiedRange = useMemo(() => {
-    const startTimes = [...candidateDates].map((date) => date.start_time).sort()
-    const endTimes = [...candidateDates].map((date) => date.end_time).sort()
+    if (!hasCandidates) {
+      return { start: '00:00', end: '00:00' }
+    }
+
+    const startTimes = [...candidateDates]
+      .map((date) => date.start_time)
+      .sort()
+    const endTimes = [...candidateDates]
+      .map((date) => date.end_time)
+      .sort()
 
     return {
       start: startTimes[0],
       end: endTimes[endTimes.length - 1],
     }
-  }, [candidateDates])
+  }, [candidateDates, hasCandidates])
 
-  const timeSlots = useMemo(
-    () => generateTimeSlots(unifiedRange.start, unifiedRange.end),
-    [unifiedRange.end, unifiedRange.start]
-  )
+  const timeSlots = useMemo(() => {
+    if (!hasCandidates) {
+      return []
+    }
+
+    return generateTimeSlots(unifiedRange.start, unifiedRange.end)
+  }, [hasCandidates, unifiedRange.end, unifiedRange.start])
 
   const toggleSlot = (slot: TimeSlot) => {
     const current = selectedSlots.get(slot.date) ?? new Set<string>()
@@ -90,6 +91,16 @@ export function Calendar({
   })
 
   const wrapperTouchAction = isSelecting ? 'none' : 'pan-y'
+
+  if (!hasCandidates) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center text-muted-foreground">候補日がありません</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
