@@ -40,13 +40,6 @@ export function useCalendarTouch({
       const touch = event.touches[0]
       currentSlotRef.current = slot
 
-      setTouchState({
-        mode: 'pending',
-        startPosition: { x: touch.clientX, y: touch.clientY },
-        initialSelection: isSlotSelected(slot),
-        longPressTimer: null,
-      })
-
       const timer = setTimeout(() => {
         setTouchState((prev) => ({
           ...prev,
@@ -60,10 +53,12 @@ export function useCalendarTouch({
         onToggleSlot(slot)
       }, LONG_PRESS_DELAY)
 
-      setTouchState((prev) => ({
-        ...prev,
+      setTouchState({
+        mode: 'pending',
+        startPosition: { x: touch.clientX, y: touch.clientY },
+        initialSelection: isSlotSelected(slot),
         longPressTimer: timer,
-      }))
+      })
     },
     [isSlotSelected, onToggleSlot]
   )
@@ -123,38 +118,44 @@ export function useCalendarTouch({
     [isSlotSelected, onToggleSlot, touchState]
   )
 
-  const resetTouchState = useCallback(() => {
-    setTouchState({
-      mode: 'idle',
-      startPosition: null,
-      longPressTimer: null,
-      initialSelection: false,
-    })
-    currentSlotRef.current = null
-  }, [])
-
   const handleTouchEnd = useCallback(
     (slot: TimeSlot) => {
-      if (touchState.longPressTimer) {
-        clearTimeout(touchState.longPressTimer)
-      }
+      setTouchState((prev) => {
+        if (prev.longPressTimer) {
+          clearTimeout(prev.longPressTimer)
+        }
 
-      if (touchState.mode === 'pending') {
-        onToggleSlot(slot)
-      }
+        if (prev.mode === 'pending') {
+          onToggleSlot(slot)
+        }
 
-      resetTouchState()
+        return {
+          mode: 'idle',
+          startPosition: null,
+          longPressTimer: null,
+          initialSelection: false,
+        }
+      })
+      currentSlotRef.current = null
     },
-    [onToggleSlot, resetTouchState, touchState]
+    [onToggleSlot]
   )
 
   const handleTouchCancel = useCallback(() => {
-    if (touchState.longPressTimer) {
-      clearTimeout(touchState.longPressTimer)
-    }
+    setTouchState((prev) => {
+      if (prev.longPressTimer) {
+        clearTimeout(prev.longPressTimer)
+      }
 
-    resetTouchState()
-  }, [resetTouchState, touchState.longPressTimer])
+      return {
+        mode: 'idle',
+        startPosition: null,
+        longPressTimer: null,
+        initialSelection: false,
+      }
+    })
+    currentSlotRef.current = null
+  }, [])
 
   return {
     handleTouchStart,
