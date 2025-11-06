@@ -90,7 +90,7 @@ export function Calendar({
     isSlotSelected,
   })
 
-  const wrapperTouchAction = isSelecting ? 'none' : 'pan-y'
+  const wrapperTouchAction = isSelecting ? 'none' : 'auto'
 
   if (!hasCandidates) {
     return (
